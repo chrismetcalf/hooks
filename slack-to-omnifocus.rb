@@ -26,17 +26,20 @@ channel_id = payload["channel"]["id"]
 
 text = payload["message"]["text"]
 
+response_url = payload["response_url"]
+
 # Turn user IDs into usernames
 SLACK_TOKEN = ENV["SLACK_TOKEN_#{team.upcase}"]
-text.match(/<@([A-Z0-9]+)>/).captures.each { |match|
-  url = "https://slack.com/api/users.info?token=#{SLACK_TOKEN}&user=#{match}"
-  response = JSON.parse(Net::HTTP.get(URI(url)))
-  pp response
-  if response["ok"]
-    text.gsub!(/#{match}/, response["user"]["name"])
-  end
-}
-
+matches = text.match(/<@([A-Z0-9]+)>/)
+if matches
+  matches.captures.each { |match|
+    url = "https://slack.com/api/users.info?token=#{SLACK_TOKEN}&user=#{match}"
+    response = JSON.parse(Net::HTTP.get(URI(url)))
+    if response["ok"]
+      text.gsub!(/#{match}/, response["user"]["name"])
+    end
+  }
+end
 
 # Get a permalink
 url = "https://slack.com/api/chat.getPermalink?token=#{SLACK_TOKEN}&channel=#{channel_id}&message_ts=#{message_ts}"
@@ -80,10 +83,35 @@ smtp.enable_starttls
 smtp.start(hostname, smtp_username, smtp_password, :login)
 
 # Try to send the message.
+success = false
 begin
   smtp.send_message(message, sender, recipient)
   puts "Email sent!"
+  success = true
 rescue => e
   puts "Error sending email!"
   puts e
+end
+
+# Respond in Slack
+ephemeral_msg = {
+  "text": (success ? "Your message was sent to your OmniFocus Inbox" : "An error was encountered!"),
+  "response_type": "ephemeral"
+}
+
+#response_url = "https://postb.in/1586963215694-0335789518430"
+uri = URI.parse(response_url)
+header = {
+  "Host" => "hooks.slack.com",
+  "User-Agent" => "ruby/2",
+  "Content-Type" => "application/json",
+  "Accept" => "*/*",
+  "Content-Length" => ephemeral_msg.to_json.length.to_s
+}
+
+Net::HTTP.start(uri.host, uri.port, :use_ssl => uri.scheme == 'https') do |http|
+  request = Net::HTTP::Post.new(uri, initheader = header)
+  request.body = ephemeral_msg.to_json
+  response = http.request(request)
+  pp response
 end
