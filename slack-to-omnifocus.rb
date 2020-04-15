@@ -8,7 +8,7 @@ require 'pp'
 require 'base64'
 require 'net/http'
 
-verbose = (ENV["VERBOSE"] == "true")
+VERBOSE = (ENV["VERBOSE"] == "true")
 
 # Parse payload
 payload = JSON.parse(ARGV.first)
@@ -26,9 +26,20 @@ channel_id = payload["channel"]["id"]
 
 text = payload["message"]["text"]
 
+# Turn user IDs into usernames
+SLACK_TOKEN = ENV["SLACK_TOKEN_#{team.upcase}"]
+text.match(/<@([A-Z0-9]+)>/).captures.each { |match|
+  url = "https://slack.com/api/users.info?token=#{SLACK_TOKEN}&user=#{match}"
+  response = JSON.parse(Net::HTTP.get(URI(url)))
+  pp response
+  if response["ok"]
+    text.gsub!(/#{match}/, response["user"]["name"])
+  end
+}
+
+
 # Get a permalink
-token = ENV["SLACK_TOKEN_#{team.upcase}"]
-url = "https://slack.com/api/chat.getPermalink?token=#{token}&channel=#{channel_id}&message_ts=#{message_ts}"
+url = "https://slack.com/api/chat.getPermalink?token=#{SLACK_TOKEN}&channel=#{channel_id}&message_ts=#{message_ts}"
 response = JSON.parse(Net::HTTP.get(URI(url)))
 permalink = response["permalink"] || "Error fetching permalink!"
 
@@ -60,7 +71,7 @@ User: slack://user?id=#{user_id}&team=#{team_id}
 #{text}
 MESSAGE_END
 
-if verbose
+if VERBOSE
   puts message
 end
 
