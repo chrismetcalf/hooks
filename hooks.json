@@ -1,8 +1,8 @@
 [
   {
     "id": "slack",
-    "execute-command": "/mnt/northwest_ripple/homedirs/krezel/src/github.com/hooks/slack-to-omnifocus.rb",
-    "command-working-directory": "/tmp/",
+    "execute-command": "./slack-to-omnifocus.rb",
+    "command-working-directory": ".",
     "response-message": "Forwarded message to OmniFocus!",
     "pass-arguments-to-command": [
       {
