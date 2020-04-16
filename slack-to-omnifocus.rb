@@ -37,6 +37,8 @@ if matches
     response = JSON.parse(Net::HTTP.get(URI(url)))
     if response["ok"]
       text.gsub!(/#{match}/, response["user"]["name"])
+    else
+      pp response
     end
   }
 end
