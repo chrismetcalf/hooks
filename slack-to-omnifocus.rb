@@ -101,7 +101,6 @@ ephemeral_msg = {
   "response_type": "ephemeral"
 }
 
-#response_url = "https://postb.in/1586963215694-0335789518430"
 uri = URI.parse(response_url)
 header = {
   "Host" => "hooks.slack.com",
